@@ -5,7 +5,6 @@ import Link from "next/link";
 import { SIDEBAR_NAVIGATION } from "@/core/config/navigation.config";
 import { Separator } from "@heroui/react";
 import { LogOut } from "lucide-react";
-import { useEffect } from "react";
 import { IUser } from "@/types/api";
 
 interface SidebarProps {

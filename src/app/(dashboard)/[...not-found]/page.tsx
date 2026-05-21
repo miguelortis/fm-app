@@ -1,7 +1,7 @@
 "use client";
 
 import { Button, Card } from "@heroui/react";
-import { Search, HelpCircle, ArrowLeft } from "lucide-react";
+import { Search, ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 export default function NotFoundPage() {

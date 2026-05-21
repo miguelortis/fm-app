@@ -1,8 +1,7 @@
 "use client";
 
 import { Button, Card } from "@heroui/react";
-import { ShieldAlert, ArrowLeft, Home } from "lucide-react";
-import Link from "next/link";
+import { ShieldAlert, Home } from "lucide-react";
 
 export default function UnauthorizedPage() {
   return (

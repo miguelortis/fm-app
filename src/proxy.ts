@@ -45,13 +45,13 @@ export function proxy(request: NextRequest) {
         return NextResponse.next();
       }
       let currentItemRoute = null;
-      let currentSectionRoute = null;
+      //let currentSectionRoute = null;
 
       for (const section of SIDEBAR_NAVIGATION) {
         const matchItem = section.items.find((item) => pathname === item.href);
         if (matchItem) {
           currentItemRoute = matchItem;
-          currentSectionRoute = section;
+          //currentSectionRoute = section;
           break;
         }
       }
@@ -76,7 +76,7 @@ export function proxy(request: NextRequest) {
           }
         }
       }
-    } catch (error) {
+    } catch {
       deleteCookie("auth_token");
       const response = NextResponse.redirect(new URL("/login", request.url));
       response.cookies.delete("auth_token");

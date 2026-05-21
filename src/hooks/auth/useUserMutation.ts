@@ -4,10 +4,9 @@ import { useQuery } from "@tanstack/react-query";
 import { getCookie } from "cookies-next";
 import { userService } from "@/core/services/user.service";
 import { useAuthStore } from "@/store/auth.store";
-import { IUser } from "@/types/api";
 
 export const useCurrentUser = () => {
-  const { user, token, setUser, logout } = useAuthStore();
+  const { user, token } = useAuthStore();
   const cookieToken = getCookie("auth_token") as string | undefined;
   const authToken = token ?? cookieToken ?? null;
 
