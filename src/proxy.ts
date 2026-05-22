@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { jwtDecode } from "jwt-decode";
-import { SIDEBAR_NAVIGATION } from "./core/config/navigation.config";
+import { SIDEBAR_NAVIGATION } from "@/core/config/navigation.config";
 import { deleteCookie } from "cookies-next";
 
 interface DecodedToken {
