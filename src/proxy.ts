@@ -3,13 +3,15 @@ import type { NextRequest } from "next/server";
 import { jwtDecode } from "jwt-decode";
 import { SIDEBAR_NAVIGATION } from "@/core/config/navigation.config";
 import { deleteCookie } from "cookies-next";
+import { IRole } from "./types/api/role.interface";
 
 interface DecodedToken {
-  userId: string;
+  role: IRole;
+  nationalId: string;
+  firstName: string;
+  lastName: string;
   email: string;
-  role: string;
-  isRoot: boolean;
-  permissions: string[];
+  isActive: boolean;
   sub: string;
 }
 
@@ -36,39 +38,30 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  console.log(pathname);
   // 3. Control estricto de permisos atómicos
   if (token && pathname.startsWith("/dashboard")) {
     try {
       const decoded = jwtDecode<DecodedToken>(token);
-
-      if (decoded?.isRoot) {
+      if (decoded?.role?.isRoot) {
         return NextResponse.next();
       }
       let currentItemRoute = null;
-      //let currentSectionRoute = null;
 
       for (const section of SIDEBAR_NAVIGATION) {
         const matchItem = section.items.find((item) => pathname === item.href);
         if (matchItem) {
           currentItemRoute = matchItem;
-          //currentSectionRoute = section;
           break;
         }
       }
 
-      console.log("permisi::", currentItemRoute);
       if (currentItemRoute) {
-        /* console.log(decoded);
-        const hasRoleAccess = currentSectionRoute.allowedRoles.includes(
-          decoded?.role?.name,
-        );
-        if (!hasRoleAccess) {
-          return NextResponse.redirect(new URL("/dashboard", request.url));
-        } */
         if (currentItemRoute.permission) {
-          const hasPermissionAccess = decoded?.permissions?.includes(
-            currentItemRoute.permission,
-          );
+          const hasPermissionAccess = decoded?.role?.permissions
+            ?.map((p) => p.slug)
+            ?.includes(currentItemRoute.permission);
+          console.log("Permissi:::", hasPermissionAccess);
           if (!hasPermissionAccess) {
             return NextResponse.redirect(
               new URL("/dashboard/unauthorized", request.url),

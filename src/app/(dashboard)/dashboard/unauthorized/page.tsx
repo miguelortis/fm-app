@@ -2,8 +2,10 @@
 
 import { Button, Card } from "@heroui/react";
 import { ShieldAlert, Home } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 export default function UnauthorizedPage() {
+  const router = useRouter();
   return (
     <div className="min-h-[75vh] flex items-center justify-center p-4">
       <Card className="max-w-md w-full border border-slate-100 shadow-[0_15px_40px_-15px_rgba(0,106,225,0.08)] rounded-[2rem] p-6 sm:p-8 bg-white text-center space-y-6">
@@ -41,8 +43,7 @@ export default function UnauthorizedPage() {
         {/* Acciones de Navegación */}
         <div className="flex flex-col sm:flex-row gap-3 pt-2">
           <Button
-            //as={Link}
-            //href="/dashboard"
+            onClick={() => router.push("/dashboard")}
             variant="primary"
             className="w-full bg-gradient-to-r from-[#006ae1] to-[#00a6a0] text-white rounded-2xl font-black shadow-lg shadow-[#006ae1]/20 hover:opacity-95 text-xs uppercase tracking-wider h-12 flex items-center justify-center gap-2"
           >

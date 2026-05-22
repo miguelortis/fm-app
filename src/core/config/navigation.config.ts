@@ -54,7 +54,7 @@ export const SIDEBAR_NAVIGATION: INavigationSection[] = [
   },
   {
     sectionTitle: "Seguridad Informatica",
-    requiredPermissions: ["roles:manage"],
+    requiredPermissions: ["roles:manage", "users:view"],
     items: [
       {
         title: "Control de Personal",
