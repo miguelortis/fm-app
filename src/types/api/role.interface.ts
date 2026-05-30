@@ -1,6 +1,7 @@
 import { IPermission } from "./permissions.interface";
 
 export interface IRole {
+  _id?: string;
   name: string;
   slug: string;
   permissions?: IPermission[]; // Aquí guardamos los slugs de los permisos asociados a este rol

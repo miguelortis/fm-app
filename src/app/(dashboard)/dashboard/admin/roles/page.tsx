@@ -1,279 +1,359 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  Checkbox,
-  CheckboxGroup,
-  Card,
-  Separator,
-  Button,
-  Input,
-  Spinner,
-  Label,
-  Description,
-} from "@heroui/react";
+import { Card, Button, Input, Checkbox, Tooltip, Spinner } from "@heroui/react";
 import {
   ShieldCheck,
-  Save,
-  ShieldAlert,
-  CheckCircle2,
-  ArrowLeft,
+  Plus,
+  UserCheck,
+  Trash2,
+  Edit3,
+  Lock,
+  Layers,
 } from "lucide-react";
-import Link from "next/link";
-import api from "@/core/api/axios.instance";
-
-interface Permission {
-  _id: string;
-  name: string;
-  slug: string;
-  module: string;
-}
-
-interface GroupedPermissions {
-  [moduleName: string]: Permission[];
-}
+import Modal from "@/components/ui/Modal/Modal";
+import {
+  useRoles,
+  useCreateRole,
+  useUpdateRole,
+  useDeleteRole,
+} from "@/hooks/admin/useRoleMutation";
+import { IRole } from "@/types/api/role.interface";
+import { IPermission } from "@/types/api/permissions.interface";
+import { usePermissions } from "@/hooks/admin/usePermissionMutation";
 
 export default function RolesPage() {
-  const queryClient = useQueryClient();
+  // Conexión a tus nuevos Hooks asíncronos de TanStack Query
+  const { data: roles = [], isLoading: isLoadingRoles } = useRoles();
+  const { data: apiPermissions = [], isLoading: isLoadingPermissions } =
+    usePermissions();
+
+  const createRoleMutation = useCreateRole();
+  const updateRoleMutation = useUpdateRole();
+  const deleteRoleMutation = useDeleteRole();
+
+  // Estados para el formulario del Modal
+  const [modalMode, setModalMode] = useState<"create" | "edit">("create");
+  const [createOpenModal, setCreateOpenModal] = useState<boolean>(false);
+  const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null);
   const [roleName, setRoleName] = useState("");
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // 1. Obtener Permisos de la API
-  const {
-    data: permissions = [],
-    isLoading,
-    isError,
-  } = useQuery<Permission[]>({
-    queryKey: ["permissions"],
-    queryFn: async () => {
-      const response = await api.get("roles-setup/permissions");
-      if (!response.data) throw new Error("Error al cargar los permisos");
-      return response.data;
-    },
-  });
+  // Función interna para agrupar los permisos del API dinámicamente por módulos visuales
+  const getGroupedPermissions = () => {
+    const modules: { [key: string]: IPermission[] } = {};
 
-  // 2. Mutación para guardar el Rol
-  const mutation = useMutation({
-    mutationFn: async (newRole: { name: string; permissions: string[] }) => {
-      const response = await api.post("roles-setup/roles", newRole);
-      if (!response.data) throw new Error("Error al guardar el rol");
-      return response.data;
-    },
-    onSuccess: () => {
-      setSuccessMessage(
-        `El rol "${roleName}" ha sido creado y configurado con éxito.`,
-      );
-      setErrorMessage(null);
-      setRoleName("");
-      setSelectedPermissions([]);
-      queryClient.invalidateQueries({ queryKey: ["roles"] });
-      setTimeout(() => setSuccessMessage(null), 4000);
-    },
-    onError: (error: Error) => {
-      setErrorMessage(error.message || "Error inesperado al guardar el rol");
-      setSuccessMessage(null);
-    },
-  });
+    apiPermissions.forEach((perm: IPermission) => {
+      // Si por alguna razón el permiso no tiene módulo, lo mandamos a un bloque genérico
+      const moduleName = perm.module || "Otros Módulos";
 
-  // Agrupar permisos por módulo
-  const groupedPermissions = permissions.reduce<GroupedPermissions>(
-    (acc, curr) => {
-      if (!acc[curr.module]) acc[curr.module] = [];
-      acc[curr.module].push(curr);
-      return acc;
-    },
-    {},
-  );
+      // Si es la primera vez que vemos este módulo, inicializamos su array
+      if (!modules[moduleName]) {
+        modules[moduleName] = [];
+      }
 
-  const handleSaveRole = () => {
-    if (!roleName.trim()) {
-      setErrorMessage("Por favor, ingresa un nombre para el nuevo rol.");
-      return;
-    }
-    if (selectedPermissions.length === 0) {
-      setErrorMessage(
-        "Selecciona al menos un permiso para poder crear el rol.",
-      );
-      return;
-    }
-    // Mapeamos los _id en lugar de los slugs para que coincida con tu seed de MongoDB
-    const permissionIds = permissions
-      .filter((p) => selectedPermissions.includes(p.slug))
-      .map((p) => p._id);
+      // Inyectamos el permiso en su respectivo grupo funcional
+      modules[moduleName].push(perm);
+    });
 
-    mutation.mutate({ name: roleName, permissions: permissionIds });
+    // Retornamos el formato estructurado para renderizar las secciones dinámicamente
+    return Object.keys(modules).map((key) => ({
+      moduleName: key,
+      permissions: modules[key],
+    }));
+  };
+  // Manejador para abrir modal en modo creación
+  const handleCreateOpen = () => {
+    setModalMode("create");
+    setRoleName("");
+    setSelectedPermissions([]);
+    setCreateOpenModal(true);
   };
 
-  if (isLoading) {
+  // Manejador para abrir modal en modo edición
+  const handleEditOpen = (role: IRole) => {
+    setModalMode("edit");
+    setSelectedRoleId(role._id || null); // Soporta tanto id clásico como _id de MongoDB
+    setRoleName(role.name);
+
+    // Saneamos los permisos asegurando extraer el slug ya sea que venga como objeto o string
+    const currentPerms =
+      role.permissions
+        ?.map((p: IPermission) => (typeof p === "string" ? p : p?._id))
+        .filter((perm): perm is string => typeof perm === "string") || [];
+    setSelectedPermissions(currentPerms);
+    setCreateOpenModal(true);
+  };
+
+  // Guardar datos interactuando directamente con tu API en Render
+  const handleSaveRole = async () => {
+    if (!roleName.trim()) return;
+
+    const rolePayload = {
+      name: roleName,
+      permissions: selectedPermissions,
+    };
+
+    try {
+      if (modalMode === "create") {
+        await createRoleMutation.mutateAsync(rolePayload);
+      } else if (selectedRoleId) {
+        await updateRoleMutation.mutateAsync({
+          id: selectedRoleId,
+          data: rolePayload,
+        });
+      }
+      setCreateOpenModal(false);
+    } catch (error) {
+      console.error("Error al procesar la mutación del rol:", error);
+    }
+  };
+
+  // Manejador para eliminar un rol con confirmación nativa
+  const handleDeleteRole = (id: string | undefined) => {
+    if (
+      confirm(
+        "¿Estás completamente seguro de que deseas eliminar este rol de la matriz? Esta acción es irreversible.",
+      )
+    ) {
+      deleteRoleMutation.mutate(id || "");
+    }
+  };
+
+  // Alternar selección de permisos interactiva
+  const togglePermission = (slug: string) => {
+    setSelectedPermissions((prev) =>
+      prev.includes(slug) ? prev.filter((p) => p !== slug) : [...prev, slug],
+    );
+  };
+
+  // Loader global unificado mientras se sincronizan los datos de Render
+  if (isLoadingRoles || isLoadingPermissions) {
     return (
-      <div className="min-h-[70vh] flex flex-col items-center justify-center gap-4 bg-slate-50/50 rounded-[2rem]">
+      <div className="min-h-[60vh] w-full flex flex-col items-center justify-center gap-4">
         <Spinner size="lg" className="text-[#006ae1]" />
         <p className="text-slate-500 font-bold text-sm animate-pulse">
-          Cargando matriz de seguridad corporativa...
+          Sincronizando matriz de seguridad con Render...
         </p>
       </div>
     );
   }
 
-  if (isError) {
-    return (
-      <div className="max-w-md mx-auto my-12 p-8 bg-white border border-slate-100 shadow-2xl rounded-[2rem] text-center space-y-4">
-        <div className="w-12 h-12 bg-rose-50 rounded-full flex items-center justify-center mx-auto text-rose-500">
-          <ShieldAlert size={24} />
-        </div>
-        <h3 className="font-black text-slate-800 text-lg">
-          Error de Sincronización
-        </h3>
-        <p className="text-sm text-slate-500 font-medium">
-          No pudimos conectar con el servidor de credenciales. Por favor,
-          verifica el estado de la API.
-        </p>
-      </div>
-    );
-  }
+  const groupedPermissions = getGroupedPermissions();
 
   return (
-    <div className="max-w-5xl mx-auto p-4 sm:p-6 space-y-6">
-      {/* Botón de retorno de sesión integrado */}
-      <div className="flex items-center justify-between">
+    <div className="max-w-6xl mx-auto p-4 sm:p-6 space-y-8 select-none">
+      {/* 1. HEADER HERO */}
+      <div className="relative overflow-hidden bg-gradient-to-r from-[#006ae1] to-[#00a6a0] rounded-[2.5rem] p-6 sm:p-8 text-white shadow-xl shadow-[#006ae1]/10 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+        <div className="absolute right-0 bottom-0 opacity-10 translate-x-16 translate-y-16 pointer-events-none">
+          <Layers size={240} />
+        </div>
+
+        <div className="space-y-2 relative z-10">
+          <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-black tracking-wider uppercase">
+            <ShieldCheck size={12} />
+            Matriz de Control Atómico
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-black tracking-tight">
+            Gestión de Roles
+          </h1>
+          <p className="text-white/80 text-xs font-medium max-w-md">
+            Define la jerarquía de seguridad de UNEFM Salud controlando qué
+            capacidades tiene cada rango dentro de la plataforma.
+          </p>
+        </div>
+
         <Button
-          /* as={Link}
-          href="/dashboard" */
-          variant="outline"
-          className="text-slate-500 hover:text-slate-800 font-bold gap-2 border-slate-200 hover:border-slate-300 rounded-xl text-xs transition-all"
+          onPress={handleCreateOpen}
+          className="relative z-10 bg-white text-[#006ae1] hover:bg-slate-50 font-black text-xs uppercase tracking-wider h-12 px-6 rounded-2xl shadow-lg transition-all duration-200 flex items-center gap-2 group shrink-0"
         >
-          <ArrowLeft size={14} />
-          Volver al panel
+          <Plus
+            size={16}
+            className="group-hover:scale-110 transition-transform"
+          />
+          Crear Nuevo Rol
         </Button>
       </div>
 
-      {/* Tarjeta Principal Unificada (Idéntica estructura al Login Card) */}
-      <Card className="border border-slate-100 shadow-[0_15px_40px_-15px_rgba(0,106,225,0.08)] rounded-[2rem] p-3 sm:p-6 bg-white">
-        <Card.Header className="flex flex-col items-start gap-2 pt-4 px-4 sm:px-6">
-          <div className="flex items-center gap-3">
-            {/* Contenedor del Icono con degradado corporativo sutil de fondo */}
-            <div className="p-3 bg-gradient-to-tr from-[#006ae1]/10 to-[#00a6a0]/10 rounded-2xl text-[#006ae1]">
-              <ShieldCheck size={28} />
-            </div>
-            <div>
-              <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-1">
-                Configuración de <span className="text-[#006ae1]">Roles</span>
-              </h1>
-              <p className="text-slate-400 text-xs font-bold">
-                Asigna privilegios del sistema a nuevos perfiles de usuario
-              </p>
-            </div>
-          </div>
-        </Card.Header>
+      {/* 2. GRID DE ROLES ACTIVOS */}
+      <div className="space-y-3 px-2">
+        <h2 className="text-lg font-black text-slate-800 tracking-tight">
+          Roles del Sistema
+        </h2>
+        <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest">
+          Matriz actual en base de datos
+        </p>
+      </div>
 
-        <Card.Content className="flex flex-col gap-6 px-4 sm:px-6 pb-6 mt-6">
-          {/* Input estilizado con el patrón exacto de tu Login */}
-          <div className="max-w-md w-full space-y-2">
-            <Label
-              htmlFor="roleName"
-              className="font-black text-slate-800 text-sm tracking-tight"
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {roles.map((role: IRole) => {
+          const roleId = role._id ?? role._id;
+          return (
+            <Card
+              key={roleId}
+              className="border border-slate-100 bg-white rounded-[2rem] p-6 shadow-[0_15px_40px_-15px_rgba(0,106,225,0.03)] hover:shadow-[0_20px_40px_-10px_rgba(0,106,225,0.06)] transition-all duration-300 flex flex-col justify-between gap-6 group"
             >
+              <div className="space-y-4">
+                <div className="flex justify-between items-start">
+                  <div className="space-y-1">
+                    <h3 className="font-black text-slate-800 text-base tracking-tight group-hover:text-[#006ae1] transition-colors">
+                      {role.name}
+                    </h3>
+                    <span className="text-[10px] font-mono text-slate-400 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100/80">
+                      slug: {role.slug}
+                    </span>
+                  </div>
+                  <div className="p-2.5 bg-slate-50 rounded-xl text-slate-400 group-hover:bg-[#006ae1]/5 group-hover:text-[#006ae1] transition-all">
+                    <UserCheck size={18} />
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 text-xs text-slate-500 font-bold">
+                  <Lock size={13} className="text-slate-400" />
+                  <span>
+                    {role.permissions?.length || 0} capacidades autorizadas
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 pt-2 border-t border-slate-50">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onPress={() => handleEditOpen(role)}
+                  className="w-full rounded-xl font-bold text-xs text-slate-600 hover:text-[#006ae1] hover:bg-slate-50 h-9 flex items-center gap-1.5"
+                >
+                  <Edit3 size={14} />
+                  Modificar Permisos
+                </Button>
+
+                {!role.isRoot && (
+                  <Tooltip closeDelay={100}>
+                    <Button
+                      isIconOnly
+                      size="sm"
+                      variant="outline"
+                      onPress={() => handleDeleteRole(roleId)}
+                      isPending={
+                        deleteRoleMutation.isPending &&
+                        deleteRoleMutation.variables === roleId
+                      }
+                      className="rounded-xl text-slate-400 hover:text-rose-500 hover:bg-rose-50 h-9 w-9 shrink-0"
+                    >
+                      <Trash2 size={14} />
+                    </Button>
+                    <Tooltip.Content className="bg-rose-500 text-white text-xs font-medium px-2 py-1 rounded">
+                      Eliminar Rol
+                    </Tooltip.Content>
+                  </Tooltip>
+                )}
+              </div>
+            </Card>
+          );
+        })}
+      </div>
+
+      {/* 3. MODAL DINÁMICO TOTALMENTE CONECTADO */}
+      <Modal
+        title={modalMode === "create" ? "Registrar Nuevo Rol" : `Modificar Rol`}
+        isOpen={createOpenModal}
+        onOpenChange={(open) => setCreateOpenModal(open)}
+        footer={
+          <>
+            <Button
+              variant="outline"
+              onPress={() => setCreateOpenModal(false)}
+              className="rounded-xl font-bold text-xs uppercase tracking-wider h-11 px-4 text-slate-500 hover:bg-slate-50"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onPress={handleSaveRole}
+              isPending={
+                createRoleMutation.isPending || updateRoleMutation.isPending
+              }
+              className="bg-gradient-to-r from-[#006ae1] to-[#00a6a0] text-white font-black text-xs uppercase tracking-wider h-11 px-5 rounded-xl shadow-md shadow-[#006ae1]/10 hover:opacity-95"
+            >
+              {modalMode === "create" ? "Guardar Rol" : "Actualizar Cambios"}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-6">
+          {/* Nombre del Rol */}
+          <div className="space-y-2">
+            <label className="text-xs font-black uppercase text-slate-400 tracking-wider pl-1">
               Nombre del Rol
-            </Label>
+            </label>
             <Input
-              id="roleName"
-              placeholder="Ej: Personal Administrativo, Coordinador Médico"
-              variant="primary"
-              className="rounded-2xl border-slate-200 focus-within:border-[#006ae1] h-12 bg-slate-50/40 text-sm font-semibold shadow-inner"
+              placeholder="Ej. Secretaria Ejecutiva, Médico Residente..."
               value={roleName}
               onChange={(e) => setRoleName(e.target.value)}
+              variant="primary"
+              className="rounded-2xl"
             />
           </div>
 
-          {/* Mensajes de Feedback */}
-          {successMessage && (
-            <div className="bg-emerald-50 text-emerald-800 p-4 rounded-2xl flex items-center gap-3 text-sm font-bold border border-emerald-100 shadow-sm animate-appearance-in">
-              <CheckCircle2 className="text-emerald-500 shrink-0" size={18} />
-              {successMessage}
+          {/* Listado de Permisos Dinámicos Agrupados por Módulos */}
+          <div className="space-y-4">
+            <div className="flex flex-col">
+              <label className="text-xs font-black uppercase text-slate-400 tracking-wider pl-1">
+                Asignación Atómica de Permisos
+              </label>
+              <p className="text-slate-400 text-[11px] font-medium pl-1">
+                Selecciona qué secciones del Sidebar y APIs podrá usar este rol.
+              </p>
             </div>
-          )}
 
-          {errorMessage && (
-            <div className="bg-rose-50 text-rose-800 p-4 rounded-2xl flex items-center gap-3 text-sm font-bold border border-rose-100 shadow-sm animate-appearance-in">
-              <ShieldAlert className="text-rose-500 shrink-0" size={18} />
-              {errorMessage}
-            </div>
-          )}
-
-          <div className="space-y-1 pt-2">
-            <h3 className="font-black text-slate-800 text-base tracking-tight">
-              Privilegios por Módulo de Software
-            </h3>
-            <p className="text-xs text-slate-400 font-bold">
-              Selecciona las acciones específicas que este rol tendrá permitido
-              ejecutar
-            </p>
-          </div>
-
-          <Separator className="bg-slate-100" />
-
-          {/* Grilla de Módulos con hover dinámico */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {Object.keys(groupedPermissions).map((moduleName) => (
-              <div
-                key={moduleName}
-                className="border border-slate-100 bg-slate-50/40 rounded-[1.8rem] p-5 hover:bg-white hover:shadow-[0_10px_30px_-10px_rgba(0,106,225,0.05)] hover:border-slate-200/60 transition-all duration-300"
-              >
-                {/* Cabecera del Módulo usando el degradado del sistema */}
-                <h4 className="font-black text-slate-800 text-sm tracking-tight mb-4 flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 bg-gradient-to-tr from-[#006ae1] to-[#00a6a0] rounded-full shadow-sm"></span>
-                  {moduleName}
-                </h4>
-
-                <CheckboxGroup
-                  value={selectedPermissions}
-                  onChange={(value) => setSelectedPermissions(value)}
-                  variant="primary"
-                  className="gap-3"
+            <div className="space-y-6">
+              {groupedPermissions.map((module) => (
+                <div
+                  key={module.moduleName}
+                  className="border border-slate-100 bg-slate-50/50 rounded-2xl p-4 space-y-3 shadow-none"
                 >
-                  {groupedPermissions[moduleName].map((perm) => (
-                    <Checkbox
-                      key={perm.slug}
-                      value={perm.slug}
-                      className="group flex items-start gap-3 p-1 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer select-none"
-                    >
-                      <Checkbox.Control className="mt-0.5 border-slate-300 group-data-[checked=true]:bg-gradient-to-tr group-data-[checked=true]:from-[#006ae1] group-data-[checked=true]:to-[#00a6a0] group-data-[checked=true]:border-transparent rounded-md transition-all">
-                        <Checkbox.Indicator className="text-white" />
-                      </Checkbox.Control>
-                      <Checkbox.Content className="flex flex-col">
-                        <Label className="text-sm text-slate-600 font-bold tracking-tight cursor-pointer">
-                          {perm.name}
-                        </Label>
-                        <Description className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">
-                          {perm.slug}
-                        </Description>
-                      </Checkbox.Content>
-                    </Checkbox>
-                  ))}
-                </CheckboxGroup>
-              </div>
-            ))}
-          </div>
+                  <h4 className="text-xs font-black text-slate-700 tracking-tight flex items-center gap-1.5 uppercase tracking-wide">
+                    <span className="w-1.5 h-1.5 bg-[#00a6a0] rounded-full"></span>
+                    {module.moduleName}
+                  </h4>
 
-          <Separator className="bg-slate-100 mt-4" />
-
-          {/* Botón de Guardado con el degradado fluido exacto y sombra de tu Login */}
-          <div className="flex justify-end pt-2">
-            <Button
-              variant="primary"
-              isPending={mutation.isPending}
-              className="w-full sm:w-auto bg-gradient-to-r from-[#006ae1] to-[#00a6a0] text-white rounded-2xl font-black shadow-lg shadow-[#006ae1]/20 hover:opacity-95 transition-all px-10 h-12 text-xs uppercase tracking-wider flex items-center justify-center gap-2"
-              onPress={handleSaveRole}
-            >
-              <Save size={16} />
-              Confirmar y Crear Rol
-            </Button>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {module.permissions.map((perm: IPermission) => {
+                      const permId = perm?._id as string;
+                      const isChecked = selectedPermissions.includes(permId);
+                      return (
+                        <div
+                          key={perm.slug}
+                          onClick={() => togglePermission(permId)}
+                          className={`p-3 rounded-xl border transition-all duration-150 cursor-pointer flex items-start gap-3 select-none ${
+                            isChecked
+                              ? "bg-white border-[#006ae1] shadow-[0_4px_20px_-10px_rgba(0,106,225,0.15)]"
+                              : "bg-white/80 border-slate-100 hover:border-slate-200"
+                          }`}
+                        >
+                          <Checkbox
+                            isSelected={isChecked}
+                            onChange={() => togglePermission(permId)}
+                            className="pt-0.5"
+                          />
+                          <div className="space-y-0.5 pointer-events-none">
+                            <p className="text-xs font-black text-slate-800 tracking-tight">
+                              {perm.name}
+                            </p>
+                            <p className="text-[10px] text-slate-400 font-medium leading-tight">
+                              {perm.description ||
+                                "Sin descripción proporcionada por el sistema."}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
-        </Card.Content>
-      </Card>
+        </div>
+      </Modal>
     </div>
   );
 }

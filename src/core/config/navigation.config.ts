@@ -53,8 +53,8 @@ export const SIDEBAR_NAVIGATION: INavigationSection[] = [
     ],
   },
   {
-    sectionTitle: "Seguridad Informatica",
-    requiredPermissions: ["roles:manage", "users:view"],
+    sectionTitle: "Configuración Avanzada",
+    requiredPermissions: ["users:view", "roles:manage"],
     items: [
       {
         title: "Control de Personal",
@@ -63,16 +63,16 @@ export const SIDEBAR_NAVIGATION: INavigationSection[] = [
         permission: "users:view",
       },
       {
-        title: "Gestionar Roles",
+        title: "Gestión de Roles",
         href: "/dashboard/admin/roles",
         icon: ShieldCheck,
         permission: "roles:manage",
       },
       {
-        title: "Asignar Roles",
-        href: "/dashboard/admin/assign-roles",
-        icon: ShieldCheck,
-        permission: "roles:manage",
+        title: "Auditoría de Cambios (Logs)",
+        href: "/dashboard/admin/audit-logs",
+        icon: FileText,
+        permission: "audit-logs:view",
       },
     ],
   },
