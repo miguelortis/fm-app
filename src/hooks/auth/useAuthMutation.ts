@@ -2,7 +2,7 @@ import { useMutation } from "@tanstack/react-query";
 import { AxiosError } from "axios";
 import { authService } from "@/core/services/auth.service";
 import { useRouter } from "next/navigation";
-import { LoginFormData } from "@/lib/validations/auth.schema"; // Si usas Zod
+import { LoginFormData } from "@/lib/validations/auth.schema";
 import { IUser, IUserRegisterData } from "@/types/api/user.interface";
 import { toast } from "@heroui/react";
 import { useAuthStore } from "@/store/auth.store";
@@ -16,19 +16,23 @@ export const useLoginMutation = () => {
     mutationFn: ({ nationalId, password }: LoginFormData) =>
       authService.login(nationalId, password),
 
-    onSuccess: (data: { user: IUser; token: string }) => {
-      const { user, token } = data;
-      // 1. Guardar en Store Global (Zustand/Redux)
-      setUser(user, token);
+    // 🌟 TypeScript ahora compila feliz porque la data viene tipada desde el servicio
+    onSuccess: (data) => {
+      const { user } = data;
+      const authToken = data.access_token ?? null;
+
+      // 1. Guardar en Store Global (Zustand)
+      setUser(user, authToken);
+
       toast.success("¡Bienvenido de vuelta!", {
         description: `Hola ${user.firstName}, has iniciado sesión correctamente.`,
       });
-      // 2. Redirección basada en el rol del usuario (opcional)
-      router.push("/dashboard");
+
+      // 2. Redirección limpia usando replace para evitar el bucle de transiciones
+      router.replace("/dashboard");
     },
 
     onError: (error: AxiosError<{ message?: string | string[] }>) => {
-      // NestJS suele enviar los errores de validación como un array o string
       const apiMessage = error.response?.data?.message;
       const message = Array.isArray(apiMessage)
         ? apiMessage[0]
@@ -51,9 +55,9 @@ export const useRegisterMutation = () => {
       toast.success("¡Bienvenido de vuelta!", {
         description: "Tu cuenta ha sido creada. Ya puedes iniciar sesión.",
       });
-      router.push("/login");
+      router.replace("/login");
     },
-    onError: (error: AxiosError<{ message?: string }>) => {
+    onError: (error: AxiosError<{ message?: string | string[] }>) => {
       const apiMessage = error.response?.data?.message;
       toast.danger("Error en registro", {
         description: Array.isArray(apiMessage)
@@ -64,6 +68,7 @@ export const useRegisterMutation = () => {
   });
 };
 
+// Hook para Olvido de Contraseña
 export const useForgotPasswordMutation = () => {
   return useMutation({
     mutationFn: (email: string) => authService.forgotPassword(email),

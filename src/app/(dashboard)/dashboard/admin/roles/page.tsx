@@ -10,6 +10,8 @@ import {
   Edit3,
   Lock,
   Layers,
+  Tv,
+  ToggleLeft,
 } from "lucide-react";
 import Modal from "@/components/ui/Modal/Modal";
 import {
@@ -25,7 +27,9 @@ import { usePermissions } from "@/hooks/admin/usePermissionMutation";
 export default function RolesPage() {
   // Conexión a tus nuevos Hooks asíncronos de TanStack Query
   const { data: roles = [], isLoading: isLoadingRoles } = useRoles();
-  const { data: apiPermissions = [], isLoading: isLoadingPermissions } =
+
+  // 📡 apiPermissions ahora recibe directamente el Record<string, IPermission[]> desde la API agrupada
+  const { data: apiPermissions = {}, isLoading: isLoadingPermissions } =
     usePermissions();
 
   const createRoleMutation = useCreateRole();
@@ -39,29 +43,29 @@ export default function RolesPage() {
   const [roleName, setRoleName] = useState("");
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
 
-  // Función interna para agrupar los permisos del API dinámicamente por módulos visuales
+  // 🌟 REESTRUCTURADO: Mapeamos el diccionario de la API a un array iterable ordenando por "type"
   const getGroupedPermissions = () => {
-    const modules: { [key: string]: IPermission[] } = {};
+    if (!apiPermissions || typeof apiPermissions !== "object") return [];
 
-    apiPermissions.forEach((perm: IPermission) => {
-      // Si por alguna razón el permiso no tiene módulo, lo mandamos a un bloque genérico
-      const moduleName = perm.module || "Otros Módulos";
+    return Object.entries(apiPermissions).map(
+      ([moduleName, permissionsArray]) => {
+        // Ordenamos para que las pantallas ('screen') aparezcan primero arriba y las acciones abajo
+        const sortedPermissions = [...(permissionsArray as IPermission[])].sort(
+          (a, b) => {
+            if (a.type === "screen" && b.type === "action") return -1;
+            if (a.type === "action" && b.type === "screen") return 1;
+            return 0;
+          },
+        );
 
-      // Si es la primera vez que vemos este módulo, inicializamos su array
-      if (!modules[moduleName]) {
-        modules[moduleName] = [];
-      }
-
-      // Inyectamos el permiso en su respectivo grupo funcional
-      modules[moduleName].push(perm);
-    });
-
-    // Retornamos el formato estructurado para renderizar las secciones dinámicamente
-    return Object.keys(modules).map((key) => ({
-      moduleName: key,
-      permissions: modules[key],
-    }));
+        return {
+          moduleName,
+          permissions: sortedPermissions,
+        };
+      },
+    );
   };
+
   // Manejador para abrir modal en modo creación
   const handleCreateOpen = () => {
     setModalMode("create");
@@ -73,19 +77,20 @@ export default function RolesPage() {
   // Manejador para abrir modal en modo edición
   const handleEditOpen = (role: IRole) => {
     setModalMode("edit");
-    setSelectedRoleId(role._id || null); // Soporta tanto id clásico como _id de MongoDB
+    setSelectedRoleId(role._id || null);
     setRoleName(role.name);
 
-    // Saneamos los permisos asegurando extraer el slug ya sea que venga como objeto o string
+    // Saneamos los permisos asegurando extraer el ID único de la base de datos
     const currentPerms =
       role.permissions
         ?.map((p: IPermission) => (typeof p === "string" ? p : p?._id))
         .filter((perm): perm is string => typeof perm === "string") || [];
+
     setSelectedPermissions(currentPerms);
     setCreateOpenModal(true);
   };
 
-  // Guardar datos interactuando directamente con tu API en Render
+  // Guardar datos interactuando directamente con tu API
   const handleSaveRole = async () => {
     if (!roleName.trim()) return;
 
@@ -121,9 +126,9 @@ export default function RolesPage() {
   };
 
   // Alternar selección de permisos interactiva
-  const togglePermission = (slug: string) => {
+  const togglePermission = (id: string) => {
     setSelectedPermissions((prev) =>
-      prev.includes(slug) ? prev.filter((p) => p !== slug) : [...prev, slug],
+      prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id],
     );
   };
 
@@ -187,7 +192,7 @@ export default function RolesPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {roles.map((role: IRole) => {
-          const roleId = role._id ?? role._id;
+          const roleId = role._id;
           return (
             <Card
               key={roleId}
@@ -294,7 +299,7 @@ export default function RolesPage() {
             />
           </div>
 
-          {/* Listado de Permisos Dinámicos Agrupados por Módulos */}
+          {/* Listado de Permisos Dinámicos Agrupados */}
           <div className="space-y-4">
             <div className="flex flex-col">
               <label className="text-xs font-black uppercase text-slate-400 tracking-wider pl-1">
@@ -316,29 +321,52 @@ export default function RolesPage() {
                     {module.moduleName}
                   </h4>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
                     {module.permissions.map((perm: IPermission) => {
                       const permId = perm?._id as string;
                       const isChecked = selectedPermissions.includes(permId);
+
+                      // 🔍 Identificamos visualmente si es pantalla o permiso de acción
+                      const isScreen = perm.type === "screen";
+
                       return (
                         <div
                           key={perm.slug}
                           onClick={() => togglePermission(permId)}
-                          className={`p-3 rounded-xl border transition-all duration-150 cursor-pointer flex items-start gap-3 select-none ${
+                          className={`my-[5px] p-3 rounded-xl border transition-all duration-150 cursor-pointer flex items-start select-none ${
                             isChecked
                               ? "bg-white border-[#006ae1] shadow-[0_4px_20px_-10px_rgba(0,106,225,0.15)]"
                               : "bg-white/80 border-slate-100 hover:border-slate-200"
-                          }`}
+                          }`} // 🌟 Si es una acción, le damos una sangría visual
                         >
                           <Checkbox
                             isSelected={isChecked}
                             onChange={() => togglePermission(permId)}
                             className="pt-0.5"
                           />
-                          <div className="space-y-0.5 pointer-events-none">
-                            <p className="text-xs font-black text-slate-800 tracking-tight">
-                              {perm.name}
-                            </p>
+                          <div className="space-y-1 pointer-events-none w-full">
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="text-xs font-black text-slate-800 tracking-tight">
+                                {perm.name}
+                              </p>
+
+                              {/* 🌟 BADGE INDICADOR DE TIPO (SCREEN O PERMISSION) */}
+                              <span
+                                className={`text-[8px] font-mono font-black px-1.5 py-0.5 rounded flex items-center gap-1 uppercase ${
+                                  isScreen
+                                    ? "bg-indigo-50 text-indigo-700 border border-indigo-100"
+                                    : "bg-slate-100 text-slate-500"
+                                }`}
+                              >
+                                {isScreen ? (
+                                  <Tv size={9} />
+                                ) : (
+                                  <ToggleLeft size={9} />
+                                )}
+                                {isScreen ? "Pantalla" : "Acción"}
+                              </span>
+                            </div>
+
                             <p className="text-[10px] text-slate-400 font-medium leading-tight">
                               {perm.description ||
                                 "Sin descripción proporcionada por el sistema."}

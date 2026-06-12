@@ -6,37 +6,71 @@ import {
   ShieldCheck,
   FileText,
   Activity,
+  ShieldAlert,
+  CalendarDays,
+  History, // 🌟 Nuevo ícono para la Mesa de Validación
 } from "lucide-react";
 
 export const SIDEBAR_NAVIGATION: INavigationSection[] = [
   {
     sectionTitle: "Panel General",
     requiredPermissions: [],
+    items: [{ title: "Inicio", href: "/dashboard", icon: LayoutDashboard }],
+  },
+  {
+    sectionTitle: "Validación de Expedientes",
+    requiredPermissions: ["beneficiaries:view"], // Oculta o muestra el bloque completo
     items: [
-      { title: "Inicio", href: "/dashboard", icon: LayoutDashboard },
       {
-        title: "Mis Citas",
-        href: "/dashboard/appointments",
-        icon: Calendar,
-        permission: "appointments:view",
+        title: "Mesa de Validación",
+        href: "/dashboard/admin/policy-reviews",
+        icon: ShieldAlert, // Asegúrate de importar ShieldAlert de "lucide-react" arriba
+        permission: "beneficiaries:view", // Enlace protegido por el slug tipo "screen"
       },
     ],
   },
   {
-    sectionTitle: "Área Médica",
-    requiredPermissions: ["medical-records:create", "medical-records:view"],
+    sectionTitle: "Control de Coberturas",
+    requiredPermissions: ["policies:view"], // Muestra el bloque si puede ver la pantalla
     items: [
       {
-        title: "Consultas Activas",
-        href: "/dashboard/doctor/consultations",
+        title: "Bandeja de Renovaciones",
+        href: "/dashboard/admin/insurance-renewal-reviews",
+        icon: FileText,
+        permission: "policies:view",
+      },
+    ],
+  },
+  {
+    sectionTitle: "Admisión y Taquilla",
+    requiredPermissions: ["policies:coverage-check"],
+    items: [
+      {
+        title: "Verificar Paciente",
+        href: "/dashboard/admin/coverage-verifier",
         icon: Activity,
-        permission: "medical-records:create",
+        permission: "policies:coverage-check", // Protegido con el slug tipo "screen"
+      },
+    ],
+  },
+  {
+    sectionTitle: "Gestión de Jornadas Anuales",
+    requiredPermissions: [
+      "policies:renewal-control",
+      "policies:period-closure",
+    ],
+    items: [
+      {
+        title: "Control de Renovación",
+        href: "/dashboard/admin/insurance-renewal",
+        icon: CalendarDays,
+        permission: "policies:renewal-control",
       },
       {
-        title: "Historias Clínicas",
-        href: "/dashboard/doctor/records",
-        icon: FileText,
-        permission: "medical-records:view",
+        title: "Cierre de Lapso",
+        href: "/dashboard/admin/period-closure",
+        icon: History,
+        permission: "policies:period-closure",
       },
     ],
   },
@@ -54,14 +88,8 @@ export const SIDEBAR_NAVIGATION: INavigationSection[] = [
   },
   {
     sectionTitle: "Configuración Avanzada",
-    requiredPermissions: ["users:view", "roles:manage"],
+    requiredPermissions: ["users:view", "roles:manage", "audit-logs:view"],
     items: [
-      {
-        title: "Control de Personal",
-        href: "/dashboard/admin/users",
-        icon: Users,
-        permission: "users:view",
-      },
       {
         title: "Gestión de Roles",
         href: "/dashboard/admin/roles",

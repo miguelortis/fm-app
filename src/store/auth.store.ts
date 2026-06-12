@@ -1,7 +1,7 @@
 import { IUser } from "@/types/api";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { deleteCookie } from "cookies-next";
+import { authService } from "@/core/services/auth.service";
 
 interface AuthStore {
   user: IUser | null;
@@ -18,19 +18,15 @@ export const useAuthStore = create<AuthStore>()(
       token: null,
       isHydrated: false,
       setUser: (user, token) => set({ user, token, isHydrated: true }),
-      logout: () => {
-        // Borrar cookie de sesión y limpiar el store
-        try {
-          deleteCookie("auth_token");
-        } catch (e) {
-          console.log(e);
-        }
-
+      logout: async () => {
+        // 1. Limpiamos de inmediato el estado de Zustand (UI reactiva instantánea)
         set({ user: null, token: null, isHydrated: false });
 
-        // Redirigir al login en cliente
-        if (typeof window !== "undefined") {
-          window.location.href = "/login";
+        try {
+          // 2. 🌟 LE DECIMOS AL SERVIDOR QUE DESTRUYA LA COOKIE HTTPONLY
+          await authService.logout();
+        } catch (e) {
+          console.error("Error al destruir la cookie en el servidor:", e);
         }
       },
     }),

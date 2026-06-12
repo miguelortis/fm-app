@@ -1,5 +1,5 @@
 import { IAuditLogFilters } from "@/types/audit-log-filters.interface";
-import api from "../api/axios.instance";
+import { apiProxy } from "../api/proxy-client";
 
 export const auditLogService = {
   getAll: async (filters: IAuditLogFilters) => {
@@ -9,7 +9,7 @@ export const auditLogService = {
     params.append("page", String(filters.page || 1));
     params.append("limit", String(filters.limit || 15));
 
-    const { data } = await api.get(`/audit-logs?${params.toString()}`);
+    const data = await apiProxy.get(`audit-logs?${params.toString()}`);
     return data;
   },
 };

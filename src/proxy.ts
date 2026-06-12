@@ -1,86 +1,31 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { jwtDecode } from "jwt-decode";
-import { SIDEBAR_NAVIGATION } from "@/core/config/navigation.config";
-import { deleteCookie } from "cookies-next";
-import { IRole } from "./types/api/role.interface";
-
-interface DecodedToken {
-  role: IRole;
-  nationalId: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  isActive: boolean;
-  sub: string;
-}
 
 const authRoutes = ["/login", "/register", "/forgot-password"];
 
-// Nota: Next.js ahora mapea la función por defecto o bajo el nombre del nuevo estándar
 export function proxy(request: NextRequest) {
+  // 1. Capturamos la cookie de forma nativa en el servidor
   const token = request.cookies.get("auth_token")?.value;
   const { pathname } = request.nextUrl;
 
-  // 1. Control de rutas de Auth
+  // 2. Si el usuario ya está logueado e intenta ir a Login/Register, lo mandamos al Dashboard
   if (token && authRoutes.some((route) => pathname.startsWith(route))) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
-  if (!token && !pathname.startsWith("/dashboard")) {
-    return NextResponse.next();
-  }
-
-  // 2. Bloqueo global al Dashboard sin sesión
+  // 3. Si el usuario NO está logueado e intenta forzar el Dashboard, lo rebotamos al Login
   if (!token && pathname.startsWith("/dashboard")) {
     const url = new URL("/login", request.url);
+    // Guardamos la ruta a la que intentaba entrar para redirigirlo luego del login
     url.searchParams.set("callbackUrl", pathname);
     return NextResponse.redirect(url);
   }
 
-  console.log(pathname);
-  // 3. Control estricto de permisos atómicos
-  if (token && pathname.startsWith("/dashboard")) {
-    try {
-      const decoded = jwtDecode<DecodedToken>(token);
-      if (decoded?.role?.isRoot) {
-        return NextResponse.next();
-      }
-      let currentItemRoute = null;
-
-      for (const section of SIDEBAR_NAVIGATION) {
-        const matchItem = section.items.find((item) => pathname === item.href);
-        if (matchItem) {
-          currentItemRoute = matchItem;
-          break;
-        }
-      }
-
-      if (currentItemRoute) {
-        if (currentItemRoute.permission) {
-          const hasPermissionAccess = decoded?.role?.permissions
-            ?.map((p) => p.slug)
-            ?.includes(currentItemRoute.permission);
-          console.log("Permissi:::", hasPermissionAccess);
-          if (!hasPermissionAccess) {
-            return NextResponse.redirect(
-              new URL("/dashboard/unauthorized", request.url),
-            );
-          }
-        }
-      }
-    } catch {
-      deleteCookie("auth_token");
-      const response = NextResponse.redirect(new URL("/login", request.url));
-      response.cookies.delete("auth_token");
-      return response;
-    }
-  }
-
+  // En cualquier otro caso (peticiones públicas, assets o accesos válidos), permitimos el paso
   return NextResponse.next();
 }
 
-// El matcher se queda igual para capturar las rutas del panel
+// Bloqueamos/Filtramos todas las rutas excepto archivos estáticos, imágenes y las rutas internas de la API Proxy
 export const config = {
   matcher: ["/((?!api|_next/static|_next/image|assets|favicon.ico|sw.js).*)"],
 };

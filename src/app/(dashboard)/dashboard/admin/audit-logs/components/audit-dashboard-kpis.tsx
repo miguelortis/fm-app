@@ -1,7 +1,7 @@
 import { Activity, PlusCircle, RefreshCw, Trash2 } from "lucide-react";
 
 interface KpisProps {
-  kpis: { total: number; create: number; update: number; delete: number };
+  kpis: { total?: number; create?: number; update?: number; delete?: number };
 }
 
 export function AuditDashboardKpis({ kpis }: KpisProps) {

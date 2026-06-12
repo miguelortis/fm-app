@@ -42,7 +42,7 @@ export function Sidebar({ user, onLogout }: SidebarProps) {
   });
 
   return (
-    <aside className="w-68 h-screen bg-white border-r border-slate-100 flex flex-col justify-between p-6 select-none shadow-[10px_0_30px_-15px_rgba(0,0,0,0.02)]">
+    <aside className="w-68 h-screen bg-white border-r border-slate-100 flex flex-col justify-between pt-4 px-6 pb-6 select-none shadow-[10px_0_30px_-15px_rgba(0,0,0,0.02)]">
       <div className="space-y-8">
         {/* Brand / Logo corporativo */}
         <div className="flex items-center gap-3 px-2">

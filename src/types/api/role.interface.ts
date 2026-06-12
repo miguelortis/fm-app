@@ -1,6 +1,7 @@
 import { IPermission } from "./permissions.interface";
 
 export interface IRole {
+  [key: string]: unknown;
   _id?: string;
   name: string;
   slug: string;

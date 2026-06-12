@@ -2,13 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { auditLogService } from "@/core/services/audit-log.service";
 import { IAuditLogFilters } from "@/types/audit-log-filters.interface";
-
-export interface AuditKpis {
-  total: number;
-  create: number;
-  update: number;
-  delete: number;
-}
+import { ILog } from "@/types/api";
 
 export function useAuditLogs() {
   // 1. El estado de los filtros se mantiene local porque la UI lo manipula directamente
@@ -43,9 +37,9 @@ export function useAuditLogs() {
   };
 
   // 5. Valores derivados del data retornado de forma segura
-  const logs = data?.docs || [];
-  const totalPages = data?.totalPages || 1;
-  const kpis: AuditKpis = data?.kpis || {
+  const logs = (data?.docs as ILog[]) || [];
+  const totalPages = (data?.totalPages as number) || 1;
+  const kpis = data?.kpis || {
     total: 0,
     create: 0,
     update: 0,

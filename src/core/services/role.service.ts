@@ -1,31 +1,28 @@
-import api from "../api/axios.instance";
-import { IRole } from "@/types/api/role.interface";
+import { IRole } from "@/types/api";
+import { apiProxy } from "../api/proxy-client";
 
 export const roleService = {
   // Obtener todos los roles
   async getRoles() {
-    const { data } = await api.get("/roles");
-    return data as IRole[];
+    const data = await apiProxy.get("/roles");
+    return data;
   },
 
   // Crear un nuevo rol
-  async createRole(roleData: { name: string; permissions: string[] }) {
-    const { data } = await api.post("/roles", roleData);
-    return data as IRole;
+  async createRole(roleData: IRole) {
+    const data = await apiProxy.post("/roles", roleData);
+    return data;
   },
 
   // Actualizar un rol existente
-  async updateRole(
-    id: string,
-    roleData: { name: string; permissions: string[] },
-  ) {
-    const { data } = await api.put(`/roles/${id}`, roleData);
-    return data as IRole;
+  async updateRole(id: string, roleData: IRole) {
+    const data = await apiProxy.put(`/roles/${id}`, roleData);
+    return data;
   },
 
   // Eliminar un rol
   async deleteRole(id: string) {
-    const { data } = await api.delete(`/roles/${id}`);
+    const data = await apiProxy.delete(`/roles/${id}`);
     return data;
   },
 };
