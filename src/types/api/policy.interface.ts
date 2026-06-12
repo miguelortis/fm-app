@@ -23,8 +23,10 @@ export interface IPolicy {
 
 export type IPolicyCreate = Omit<
   IPolicy,
-  "_id" | "status" | "createdAt" | "titular"
->;
+  "_id" | "status" | "createdAt" | "titular" | "planId"
+> & {
+  planId: string; // Solo los slugs de los permisos al crear o actualizar
+};
 
 export interface IRenewPolicyPayload {
   [key: string]: unknown; // Permite cualquier otro campo adicional

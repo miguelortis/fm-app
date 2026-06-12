@@ -3,14 +3,8 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/core/api/axios.instance";
-import { ClipboardCheck, UserPlus, Check, AlertTriangle } from "lucide-react";
-import {
-  IBeneficiary,
-  IBeneficiaryCreate,
-  IPolicy,
-  IPolicyBeneficiary,
-  IPolicyCreate,
-} from "@/types/api";
+import { ClipboardCheck, UserPlus, Check } from "lucide-react";
+import { IBeneficiaryCreate, IPolicyCreate } from "@/types/api";
 import { IFamilyCharge } from "@/types/api/family-charge.interface";
 
 export default function InsuranceRenewalPage() {
@@ -127,7 +121,7 @@ export default function InsuranceRenewalPage() {
       alert(
         "¡Su propuesta de renovación anual ha sido enviada con éxito! Estatus: PENDING_APPROVAL.",
       );
-    } catch (err) {
+    } catch {
       alert(
         "Error emitiendo contrato anual. Revise el límite estricto de edad.",
       );
