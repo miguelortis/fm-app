@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { roleService } from "@/core/services/role.service";
-import { IRole } from "@/types/api/role.interface";
+import { IRoleUpdate } from "@/types/api";
 
 // Hook para obtener el listado de roles (Lectura)
 export const useRoles = () => {
@@ -31,13 +31,8 @@ export const useUpdateRole = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({
-      id,
-      data,
-    }: {
-      id: string;
-      data: { name: string; permissions: string[] };
-    }) => roleService.updateRole(id, data),
+    mutationFn: ({ id, data }: { id: string; data: IRoleUpdate }) =>
+      roleService.updateRole(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["roles"] });
     },

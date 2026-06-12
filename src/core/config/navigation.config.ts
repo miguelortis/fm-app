@@ -1,7 +1,6 @@
 import { INavigationSection } from "@/types/navigation-config.interface";
 import {
   LayoutDashboard,
-  Calendar,
   Users,
   ShieldCheck,
   FileText,

@@ -1,4 +1,4 @@
-import { IRole } from "@/types/api";
+import { IRoleCreate, IRoleUpdate } from "@/types/api";
 import { apiProxy } from "../api/proxy-client";
 
 export const roleService = {
@@ -9,13 +9,13 @@ export const roleService = {
   },
 
   // Crear un nuevo rol
-  async createRole(roleData: IRole) {
+  async createRole(roleData: IRoleCreate) {
     const data = await apiProxy.post("/roles", roleData);
     return data;
   },
 
   // Actualizar un rol existente
-  async updateRole(id: string, roleData: IRole) {
+  async updateRole(id: string, roleData: IRoleUpdate) {
     const data = await apiProxy.put(`/roles/${id}`, roleData);
     return data;
   },

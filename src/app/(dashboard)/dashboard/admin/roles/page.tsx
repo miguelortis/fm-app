@@ -32,9 +32,15 @@ export default function RolesPage() {
   const { data: apiPermissions = {}, isLoading: isLoadingPermissions } =
     usePermissions();
 
-  const createRoleMutation = useCreateRole();
-  const updateRoleMutation = useUpdateRole();
-  const deleteRoleMutation = useDeleteRole();
+  const { mutateAsync: createRoleMutation, isPending: isCreatingRole } =
+    useCreateRole();
+  const { mutateAsync: updateRoleMutation, isPending: isUpdatingRole } =
+    useUpdateRole();
+  const {
+    mutateAsync: deleteRoleMutation,
+    isPending: isDeletingRole,
+    variables: deleteVariables,
+  } = useDeleteRole();
 
   // Estados para el formulario del Modal
   const [modalMode, setModalMode] = useState<"create" | "edit">("create");
@@ -101,9 +107,9 @@ export default function RolesPage() {
 
     try {
       if (modalMode === "create") {
-        await createRoleMutation.mutateAsync(rolePayload);
+        await createRoleMutation(rolePayload);
       } else if (selectedRoleId) {
-        await updateRoleMutation.mutateAsync({
+        await updateRoleMutation({
           id: selectedRoleId,
           data: rolePayload,
         });
@@ -121,7 +127,7 @@ export default function RolesPage() {
         "¿Estás completamente seguro de que deseas eliminar este rol de la matriz? Esta acción es irreversible.",
       )
     ) {
-      deleteRoleMutation.mutate(id || "");
+      deleteRoleMutation(id || "");
     }
   };
 
@@ -191,7 +197,7 @@ export default function RolesPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {roles.map((role: IRole) => {
+        {(roles as IRole[]).map((role: IRole) => {
           const roleId = role._id;
           return (
             <Card
@@ -239,10 +245,7 @@ export default function RolesPage() {
                       size="sm"
                       variant="outline"
                       onPress={() => handleDeleteRole(roleId)}
-                      isPending={
-                        deleteRoleMutation.isPending &&
-                        deleteRoleMutation.variables === roleId
-                      }
+                      isPending={isDeletingRole && deleteVariables === roleId}
                       className="rounded-xl text-slate-400 hover:text-rose-500 hover:bg-rose-50 h-9 w-9 shrink-0"
                     >
                       <Trash2 size={14} />
@@ -274,9 +277,7 @@ export default function RolesPage() {
             </Button>
             <Button
               onPress={handleSaveRole}
-              isPending={
-                createRoleMutation.isPending || updateRoleMutation.isPending
-              }
+              isPending={isCreatingRole || isUpdatingRole}
               className="bg-gradient-to-r from-[#006ae1] to-[#00a6a0] text-white font-black text-xs uppercase tracking-wider h-11 px-5 rounded-xl shadow-md shadow-[#006ae1]/10 hover:opacity-95"
             >
               {modalMode === "create" ? "Guardar Rol" : "Actualizar Cambios"}
