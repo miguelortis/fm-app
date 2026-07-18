@@ -1,15 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { useFamilyChargeMutation } from "@/hooks/beneficiary/useFamilyChargeMutation";
+import { useToggleDocumentCheck } from "@/hooks/beneficiary/useDependentsMutation";
 import { IPolicy, IPolicyBeneficiary } from "@/types/api";
-import { IFamilyCharge } from "@/types/api/family-charge.interface";
+import { IDependents } from "@/types/api/dependents.interface";
 import { Loader2 } from "lucide-react";
 import { QueryObserverResult } from "@tanstack/react-query";
 
 interface DocumentChecklistProps {
   titularId: string;
-  beneficiaryItem: IPolicyBeneficiary & { familyChargeDetails?: IFamilyCharge };
+  beneficiaryItem: IPolicyBeneficiary & { familyChargeDetails?: IDependents };
   refetchPendingPolicies: () => Promise<QueryObserverResult<IPolicy[], Error>>; // 🌟 NUEVA PROP: Para esperar la actualización de red
 }
 
@@ -18,7 +18,7 @@ export default function DocumentChecklist({
   beneficiaryItem,
   refetchPendingPolicies,
 }: DocumentChecklistProps) {
-  const { mutateAsync: toggleDocumentCheck } = useFamilyChargeMutation();
+  const { mutateAsync: toggleDocumentCheck } = useToggleDocumentCheck();
 
   // Estado local para controlar el spinner por cada casilla individual
   const [processingKey, setProcessingKey] = useState<string | null>(null);
@@ -77,7 +77,7 @@ export default function DocumentChecklist({
       // 2. Esperamos que el backend guarde el documento en Atlas
       await toggleDocumentCheck({
         titularId,
-        beneficiaryId: beneficiaryItem?.beneficiaryId?._id,
+        beneficiaryId: beneficiaryItem?.beneficiaryId?._id || "",
         documentKey: key,
         isProvided: isChecked,
       });
@@ -96,7 +96,7 @@ export default function DocumentChecklist({
     <div className="grid grid-cols-1 gap-2 mt-3 bg-slate-50 p-3 rounded-xl border border-slate-100">
       {currentRequirements.map((req) => {
         const docKey = req.key as keyof NonNullable<
-          IFamilyCharge["physicalDocuments"]
+          IDependents["physicalDocuments"]
         >;
         const isChecked = docs[docKey]?.isProvided || false;
 

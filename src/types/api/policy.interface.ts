@@ -1,9 +1,8 @@
-import { IBeneficiary } from "./beneficiary.interface";
 import { IPlan } from "./plan.interface";
 import { IUser } from "./user.interface";
 
 export interface IPolicyBeneficiary {
-  beneficiaryId: IBeneficiary; // ID del beneficiario (puede ser User o Beneficiary)
+  beneficiaryId: IUser; // ID del beneficiario (puede ser User o Beneficiary)
   onModel: "User" | "Beneficiary"; // Para saber en qué colección buscar
   relationship: "PAREJA" | "MADRE" | "PADRE" | "HIJO"; // Parentesco con el titular
   ageAtSubscription?: number; // Edad al momento de la inscripción en la póliza

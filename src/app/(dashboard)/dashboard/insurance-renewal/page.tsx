@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/core/api/axios.instance";
 import { ClipboardCheck, UserPlus, Check } from "lucide-react";
 import { IBeneficiaryCreate, IPolicyCreate } from "@/types/api";
-import { IFamilyCharge } from "@/types/api/family-charge.interface";
+import { IDependents } from "@/types/api/dependents.interface";
 
 export default function InsuranceRenewalPage() {
   const queryClient = useQueryClient();
@@ -108,8 +108,10 @@ export default function InsuranceRenewalPage() {
       planId,
       // Mapeamos cruzando los datos para pasar el DTO contractual correcto apuntando a la colección polimórfica
       beneficiaries: familyCharge
-        .filter((c: IFamilyCharge) => selectedIds.includes(c.beneficiary._id))
-        .map((c: IFamilyCharge) => ({
+        .filter((c: IDependents) =>
+          selectedIds.includes(c?.beneficiary?._id || ""),
+        )
+        .map((c: IDependents) => ({
           beneficiaryId: c.beneficiary._id,
           onModel: c.onModel,
           relationship: c.relationship,
@@ -156,7 +158,7 @@ export default function InsuranceRenewalPage() {
             </p>
           ) : (
             <div className="space-y-2">
-              {familyCharge.map((charge: IFamilyCharge) => {
+              {familyCharge.map((charge: IDependents) => {
                 const item = charge.beneficiary;
                 return (
                   <div
@@ -173,9 +175,9 @@ export default function InsuranceRenewalPage() {
                     </div>
                     <button
                       type="button"
-                      onClick={() => handleToggleSelect(item._id)}
+                      onClick={() => handleToggleSelect(item?._id || "")}
                       className={`p-2 rounded-xl border transition-all ${
-                        selectedIds.includes(item._id)
+                        selectedIds.includes(item?._id || "")
                           ? "bg-slate-900 border-slate-900 text-white"
                           : "bg-white text-slate-300 border-slate-200"
                       }`}
@@ -221,9 +223,7 @@ export default function InsuranceRenewalPage() {
               <select
                 value={relationship}
                 onChange={(e) =>
-                  setRelationship(
-                    e.target.value as IFamilyCharge["relationship"],
-                  )
+                  setRelationship(e.target.value as IDependents["relationship"])
                 }
                 className="p-2.5 bg-slate-50 rounded-xl text-xs font-bold border text-slate-700 outline-none"
               >
@@ -354,10 +354,10 @@ export default function InsuranceRenewalPage() {
           ) : (
             <div className="space-y-2">
               {familyCharge
-                .filter((c: IFamilyCharge) =>
-                  selectedIds.includes(c.beneficiary._id),
+                .filter((c: IDependents) =>
+                  selectedIds.includes(c.beneficiary?._id || ""),
                 )
-                .map((c: IFamilyCharge) => (
+                .map((c: IDependents) => (
                   <div
                     key={c._id}
                     className="p-2.5 bg-slate-50 rounded-xl border text-[11px] font-bold text-slate-700 flex justify-between"

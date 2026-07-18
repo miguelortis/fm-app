@@ -1,23 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import { Button } from "@heroui/react";
 import { Menu, X } from "lucide-react";
 import { Sidebar } from "@/components/dashboard/Sidebar";
-import { IUser } from "@/types/api/user.interface";
 
-interface MobileNavigationProps {
-  user: IUser | null;
-  logout: () => void;
-  isOpen: boolean;
-  setIsOpen: (open: boolean) => void;
-}
+export function MobileNavigation() {
+  const [isOpen, setIsOpen] = useState(false);
 
-export function MobileNavigation({
-  user,
-  logout,
-  isOpen,
-  setIsOpen,
-}: MobileNavigationProps) {
   return (
     <>
       {/* SIDEBAR FLOTANTE PARA MÓVILES */}
@@ -48,7 +38,7 @@ export function MobileNavigation({
               <X size={20} />
             </Button>
           </div>
-          <Sidebar user={user} onLogout={logout} />
+          <Sidebar />
         </div>
       </div>
 

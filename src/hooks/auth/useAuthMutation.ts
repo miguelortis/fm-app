@@ -3,7 +3,7 @@ import { AxiosError } from "axios";
 import { authService } from "@/core/services/auth.service";
 import { useRouter } from "next/navigation";
 import { LoginFormData } from "@/lib/validations/auth.schema";
-import { IUser, IUserRegisterData } from "@/types/api/user.interface";
+import { IUserRegisterData } from "@/types/api/user.interface";
 import { toast } from "@heroui/react";
 import { useAuthStore } from "@/store/auth.store";
 

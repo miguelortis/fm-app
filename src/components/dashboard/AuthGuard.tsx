@@ -3,11 +3,17 @@
 import { useEffect, useMemo } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuthStore } from "@/store/auth.store";
-import { useCurrentUser } from "@/hooks/auth/useUserMutation";
+import { useCurrentUser } from "@/hooks/user/useUserMutation";
 import { SIDEBAR_NAVIGATION } from "@/core/config/navigation.config";
 import { Spinner } from "@heroui/react";
 
-export function AuthGuard({ children }: { children: React.ReactNode }) {
+export function AuthGuard({
+  children,
+  token,
+}: {
+  children: React.ReactNode;
+  token: string | undefined;
+}) {
   const router = useRouter();
   const pathname = usePathname();
 
@@ -18,14 +24,14 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     isFetched,
     isLoading: isUserQueryLoading,
     isError,
-  } = useCurrentUser();
+  } = useCurrentUser(token);
 
   // 1. ÚNICO EFECTO: Sincronizar el estado local con la respuesta del servidor (NestJS)
   useEffect(() => {
-    if (!isHydrated) return;
+    if (!isFetched) return;
 
     // Si TanStack Query determinó que el token no sirve o la sesión expiró en el servidor
-    if ((isFetched && !currentUser) || isError) {
+    if (!currentUser || isError) {
       logout();
       router.replace("/login");
       return;
@@ -35,7 +41,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     if (currentUser) {
       setUser(currentUser, null);
     }
-  }, [isHydrated, currentUser, isFetched, isError, setUser, router, logout]);
+  }, [currentUser, isFetched, isError, setUser, router, logout]);
 
   // 2. 🌟 ESTADO DERIVADO CON useMemo: Validamos permisos en tiempo real sin disparar setStates
   const checkAccess = useMemo(() => {

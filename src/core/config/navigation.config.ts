@@ -7,15 +7,70 @@ import {
   Activity,
   ShieldAlert,
   CalendarDays,
-  History, // 🌟 Nuevo ícono para la Mesa de Validación
+  History,
+  CalendarClock,
+  UserPlus,
+  Layers,
+  Stethoscope, // 🌟 Nuevo ícono para la Mesa de Validación
 } from "lucide-react";
 
 export const SIDEBAR_NAVIGATION: INavigationSection[] = [
   {
     sectionTitle: "Panel General",
-    requiredPermissions: [],
-    items: [{ title: "Inicio", href: "/dashboard", icon: LayoutDashboard }],
+    requiredPermissions: ["home:view"],
+    items: [
+      {
+        title: "Inicio",
+        href: "/dashboard",
+        icon: LayoutDashboard,
+        permission: "home:view",
+      },
+    ],
   },
+  {
+    sectionTitle: "Procesos Institucionales",
+    requiredPermissions: [],
+    items: [
+      {
+        title: "Jornadas de Actualización",
+        href: "/dashboard/admin/jornadas",
+        icon: CalendarClock,
+        permission: "manage_jornadas", // 🌟 Permiso para abrir/cerrar registros público
+      },
+      {
+        title: "Control de Solicitudes",
+        href: "/dashboard/admin/solicitudes",
+        icon: UserPlus,
+        permission: "manage_registrations",
+      },
+    ],
+  },
+  {
+    sectionTitle: "Catálogos y Carga",
+    requiredPermissions: [],
+    items: [
+      {
+        title: "Gestión de Trabajadores",
+        href: "/dashboard/admin/trabajadores",
+        icon: Users,
+        permission: "manage_workers",
+      },
+      {
+        title: "Servicios Médicos",
+        href: "/dashboard/admin/servicios",
+        icon: Stethoscope,
+        permission: "manage_services",
+      },
+      {
+        title: "Planes de Salud",
+        href: "/dashboard/admin/planes",
+        icon: Layers,
+        permission: "manage_plans",
+      },
+    ],
+  },
+  ///////////////////////////////
+
   {
     sectionTitle: "Validación de Expedientes",
     requiredPermissions: ["beneficiaries:view"], // Oculta o muestra el bloque completo
@@ -23,6 +78,12 @@ export const SIDEBAR_NAVIGATION: INavigationSection[] = [
       {
         title: "Mesa de Validación",
         href: "/dashboard/admin/policy-reviews",
+        icon: ShieldAlert, // Asegúrate de importar ShieldAlert de "lucide-react" arriba
+        permission: "beneficiaries:view", // Enlace protegido por el slug tipo "screen"
+      },
+      {
+        title: "beneficiarios",
+        href: "/dashboard/profile/beneficiaries",
         icon: ShieldAlert, // Asegúrate de importar ShieldAlert de "lucide-react" arriba
         permission: "beneficiaries:view", // Enlace protegido por el slug tipo "screen"
       },

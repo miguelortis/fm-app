@@ -1,11 +1,9 @@
-import { IBeneficiary } from "@/types/api"; // Tus interfaces compartidas
+import { IBeneficiary, IUserRegisterData } from "@/types/api"; // Tus interfaces compartidas
 import { apiProxy } from "../api/proxy-client";
 import { BaseData } from "../api/types/proxy-client.interface";
 
 export const beneficiaryService = {
-  createOrFind: async (
-    payload: Omit<IBeneficiary, "_id" | "civilRegistrySerial">,
-  ): Promise<IBeneficiary> => {
+  createOrFind: async (payload: IUserRegisterData): Promise<IBeneficiary> => {
     const data = await apiProxy.post<IBeneficiary>("/beneficiaries", payload);
     return data;
   },
@@ -23,6 +21,16 @@ export const beneficiaryService = {
         isProvided: payload.isProvided,
       },
     );
+    return data;
+  },
+
+  getMyCharge: async () => {
+    const data = await apiProxy.get<IBeneficiary[]>("/beneficiaries/my-charge");
+    return data;
+  },
+
+  deleteBeneficiary: async (id: string) => {
+    const data = await apiProxy.delete<IBeneficiary[]>(`/beneficiaries/${id}`);
     return data;
   },
 };

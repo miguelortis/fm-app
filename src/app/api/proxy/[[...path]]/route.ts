@@ -121,8 +121,10 @@ async function handleProxyRequest(
     // =========================================================================
 
     // CASO LOGIN: Interceptamos la respuesta para incrustar la cookie HttpOnly
+    const basePath = subRoute.split("/").slice(0, -1).join("/");
+
     if (
-      subRoute === "auth/login" &&
+      (subRoute === "auth/login" || basePath === "users/processing-status") &&
       responseData &&
       typeof responseData === "object"
     ) {

@@ -1,29 +1,28 @@
-export interface IBirthCertificateDetails {
-  state: string;
-  municipality: string;
-  year: string;
-  book: string;
-  actNumber: string;
-}
+import { IUser } from "./user.interface";
 
+type IPhysicalDocumentStatus = {
+  isProvided: boolean;
+  verifiedBy: IUser | string;
+  verifiedAt: Date | null;
+};
 export interface IBeneficiary {
-  _id: string;
-  nationalId?: string | null; // Cédula de identidad (opcional para menores sin cédula)
-  civilRegistrySerial?: string | null; // Serial compuesto del registro civil (para menores sin cédula)
-  firstName: string;
-  lastName: string;
-  birthDate: Date | string;
-  isSpecial?: boolean; // Flag para hijos con condiciones especiales (cobertura ilimitada)
-
-  // Datos específicos desagregados del acta (para auditoría visual o reconstrucción)
-  birthCertificateDetails?: IBirthCertificateDetails | null;
-
-  // Expediente digital de documentos requeridos
-  documents?: {
-    nationalIdCopy?: string; // URL del archivo de cédula
-    birthCertificateCopy?: string; // URL del archivo de partida de nacimiento
-    legalProofSpecial?: string; // URL del justificativo de condición especial
+  _id?: string;
+  titular: IUser; // Opcional si es menor sin cédula
+  beneficiary: IUser;
+  relationship: "MADRE" | "PADRE" | "PAREJA" | "HIJO";
+  isFolderComplete: boolean;
+  physicalDocuments: {
+    parentBirthCertificate?: IPhysicalDocumentStatus;
+    parentCedula?: IPhysicalDocumentStatus;
+    childBirthCertificate?: IPhysicalDocumentStatus;
+    titularCedula?: IPhysicalDocumentStatus;
+    specialProof?: IPhysicalDocumentStatus;
+    marriageCertificate?: IPhysicalDocumentStatus;
+    partnerCedula?: IPhysicalDocumentStatus;
   };
 }
 
-export type IBeneficiaryCreate = Omit<IBeneficiary, "_id">;
+export type IBeneficiaryCreate = Omit<IBeneficiary, "_id"> & {
+  titularId: string;
+  beneficiaryId: string;
+};

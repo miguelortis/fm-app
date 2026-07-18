@@ -6,7 +6,7 @@ export interface IPhysicalDocumentStatus {
   verifiedBy: string | null; // ID del usuario que verificó el documento (puede ser un admin o el titular)
 }
 
-export interface IFamilyCharge {
+export interface IDependents {
   _id: string;
   titular: IUser;
   beneficiary: IBeneficiary;

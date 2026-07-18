@@ -5,15 +5,12 @@ import Link from "next/link";
 import { SIDEBAR_NAVIGATION } from "@/core/config/navigation.config";
 import { Separator } from "@heroui/react";
 import { LogOut } from "lucide-react";
-import { IUser } from "@/types/api";
+import { useAuthStore } from "@/store/auth.store";
 
-interface SidebarProps {
-  user: IUser | null;
-  onLogout: () => void;
-}
-
-export function Sidebar({ user, onLogout }: SidebarProps) {
+export function Sidebar() {
   const pathname = usePathname();
+  const { user, logout } = useAuthStore();
+
   const permissions = user?.role?.permissions?.map((p) => p.slug);
   // FILTRADO DINÁMICO REFACTORIZADO 100% A PERMISOS
   const visibleNavigation = SIDEBAR_NAVIGATION.map((section) => {
@@ -42,7 +39,7 @@ export function Sidebar({ user, onLogout }: SidebarProps) {
   });
 
   return (
-    <aside className="w-68 h-screen bg-white border-r border-slate-100 flex flex-col justify-between pt-4 px-6 pb-6 select-none shadow-[10px_0_30px_-15px_rgba(0,0,0,0.02)]">
+    <aside className="overflow-y-auto sticky top-0 w-68 h-screen bg-white border-r border-slate-100 flex flex-col justify-between pt-4 px-6 pb-0 select-none shadow-[10px_0_30px_-15px_rgba(0,0,0,0.02)]">
       <div className="space-y-8">
         {/* Brand / Logo corporativo */}
         <div className="flex items-center gap-3 px-2">
@@ -63,7 +60,7 @@ export function Sidebar({ user, onLogout }: SidebarProps) {
             {user?.firstName} {user?.lastName}
           </p>
           <span className="inline-block text-[10px] w-fit px-2 py-0.5 mt-1 font-black uppercase tracking-wider rounded-md bg-gradient-to-r from-[#006ae1]/10 to-[#00a6a0]/10 text-[#006ae1]">
-            {user?.role?.name || "Usuario"}
+            {user?.role?.name || "Titular"}
           </span>
         </div>
 
@@ -105,11 +102,11 @@ export function Sidebar({ user, onLogout }: SidebarProps) {
       </div>
 
       {/* Botón de salida seguro en el fondo */}
-      <div className="space-y-4">
-        <Separator className="bg-slate-100" />
+      <div className="space-y-4 sticky bottom-0 bg-white pb-[25px]">
+        <Separator className="bg-slate-200 my-1" />
         <button
           className="flex items-center gap-3 w-full h-11 px-3 text-slate-400 hover:text-rose-500 font-bold text-xs tracking-tight rounded-xl hover:bg-rose-50/50 transition-all duration-200 group"
-          onClick={onLogout}
+          onClick={logout}
         >
           <LogOut
             size={16}

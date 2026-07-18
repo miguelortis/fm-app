@@ -1,7 +1,7 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { beneficiaryService } from "@/core/services/beneficiary.service";
 
-export function useFamilyChargeMutation() {
+export function useToggleDocumentCheck() {
   const queryClient = useQueryClient();
 
   return useMutation({

@@ -1,43 +1,78 @@
 import { IRole } from "./role.interface";
 
+export type IPersonalType = "DOCENTE" | "ADMINISTRATIVO" | "OBRERO";
+export type IEmploymentType = "FIJO" | "CONTRATADO" | "JUBILADO";
+export type IMaritalStatus =
+  | "SOLTERO/A"
+  | "CASADO/A"
+  | "DIVORCIADO/A"
+  | "VIUDO/A"
+  | "OTROS";
+
+export interface IBirthCertificateDetails {
+  state: string;
+  municipality: string;
+  year: string;
+  book: string;
+  actNumber: string;
+}
+
 export interface IUser {
   _id: string;
+  nationality: string;
+  isTitular: boolean;
   firstName: string;
   lastName: string;
   nationalId: string; // Cédula o ID generado para menores
   email?: string;
-  role: IRole; // Relación con el rol del usuario
-  isRoot?: boolean; // Para marcar usuarios con acceso total (como admin)
-
-  // Relaciones familiares (Recursividad)
-  familyGroup: string[] | IUser[]; // IDs de familiares o los objetos completos si usas populate
-  parentPrimary?: string | IUser; // Quién es el titular responsable
-
+  role?: IRole; // Relación con el rol del usuario
+  refuseReason?: string;
+  gender: "M" | "F";
+  phone: string;
+  isRoot?: boolean;
+  personalType?: IPersonalType;
+  birthDate: string;
+  placeOfBirth: string;
+  address?: string;
+  dependencyArea?: string;
+  bank?: string;
+  accountNumber?: string;
+  profession?: string;
+  maritalStatus?: IMaritalStatus;
   // Gestión de beneficios y cobertura
-  coverage: {
+  coverage?: {
     planId?: string; // ID del Plan asociado
-    limit: number; // Límite monetario o de puntos (si aplica)
-    used: number; // Consumo acumulado
-    status: "active" | "suspended";
+    limit?: number; // Límite monetario o de puntos (si aplica)
+    used?: number; // Consumo acumulado
+    status?: "active" | "suspended";
   };
-
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
+  birthCertificateDetails?: IBirthCertificateDetails;
+  status:
+    | "pending"
+    | "processing"
+    | "active"
+    | "inactive"
+    | "excluded"
+    | "refused";
+  createdAt?: string;
+  updatedAt?: string;
+  isSpecial?: boolean;
+  employmentType?: IEmploymentType;
 }
 
 export type IUserRegisterData = Omit<
   IUser,
   | "_id"
-  | "roles"
-  | "permissions"
-  | "familyGroup"
-  | "parentPrimary"
+  | "role"
   | "coverage"
   | "isActive"
   | "createdAt"
   | "updatedAt"
+  | "status"
+  | "isTitular"
 > & {
-  password: string;
+  password?: string;
+  relationship?: "MADRE" | "PADRE" | "PAREJA" | "HIJO"; // Relación con el titular, si aplica
 };
-// Tipos auxiliares para mayor orden
+
+export type IUserUpdateData = Partial<IUser>;
